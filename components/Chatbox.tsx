@@ -17,8 +17,11 @@ export default function Chatbox() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [typedText, setTypedText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedUsername = localStorage.getItem("username");
@@ -26,13 +29,13 @@ export default function Chatbox() {
         router.push("/login");
       } else {
         setUsername(savedUsername);
-        // Tambahkan greeting AI di sini
         setMessages([
           {
             sender: "ai",
             text: `Halo! ${savedUsername}, ada yang bisa saya bantu tentang karir Anda hari ini?`,
           },
         ]);
+        setIsClient(true);
       }
     }
   }, []);
@@ -41,54 +44,132 @@ export default function Chatbox() {
     e.preventDefault();
     if (!prompt.trim()) return;
 
+    // Reset validation error
+    setValidationError(null);
+
     const userMessage: Message = { sender: "user", text: prompt };
     setMessages((prev) => [...prev, userMessage]);
     setLoading(true);
     setPrompt("");
 
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prompt }),
-    });
-    const data = await res.json();
-    const reply = data.reply;
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt, username }),
+      });
 
-    // Set up typing animation
-    setTypedText("");
-    setIsTyping(true);
-    setMessages((prev) => [...prev, { sender: "ai", text: "" }]);
+      const data = await res.json();
 
-    let i = 0;
-    const typingInterval = setInterval(() => {
-      setTypedText((prev) => prev + reply[i]);
-      i++;
-      if (i >= reply.length) {
-        clearInterval(typingInterval);
-        setIsTyping(false);
-        setLoading(false);
+      if (!res.ok) {
+        if (data.isValidationError) {
+          // Menampilkan pesan error validasi dari server
+          setValidationError(data.error);
+          const aiErrorMessage: Message = {
+            sender: "ai",
+            text: data.error,
+          };
+          setMessages((prev) => [...prev, aiErrorMessage]);
+          setLoading(false);
+          return;
+        } else {
+          throw new Error(data.error || "Terjadi kesalahan");
+        }
       }
-    }, 20);
+
+      const reply = data.reply;
+
+      // Set up typing animation
+      setTypedText("");
+      setIsTyping(true);
+      setMessages((prev) => [...prev, { sender: "ai", text: "" }]);
+
+      let i = 0;
+      const typingInterval = setInterval(() => {
+        setTypedText((prev) => prev + reply[i]);
+        i++;
+        if (i >= reply.length) {
+          clearInterval(typingInterval);
+          setIsTyping(false);
+          setLoading(false);
+        }
+      }, 20);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "ai",
+          text: "Maaf, terjadi kesalahan. Silakan coba lagi.",
+        },
+      ]);
+      setLoading(false);
+    }
   };
 
   const handleAutoSubmit = async (autoPrompt: string) => {
+    if (!autoPrompt.trim()) return;
+
+    // Reset validation error
+    setValidationError(null);
+
     const userMessage: Message = { sender: "user", text: autoPrompt };
     setMessages((prev) => [...prev, userMessage]);
     setLoading(true);
     setPrompt("");
 
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: autoPrompt }),
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: autoPrompt, username }),
+      });
 
-    const aiMessage: Message = { sender: "ai", text: data.reply };
-    setMessages((prev) => [...prev, aiMessage]);
-    setLoading(false);
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.isValidationError) {
+          setValidationError(data.error);
+          const aiErrorMessage: Message = {
+            sender: "ai",
+            text: data.error,
+          };
+          setMessages((prev) => [...prev, aiErrorMessage]);
+          setLoading(false);
+          return;
+        } else {
+          throw new Error(data.error || "Terjadi kesalahan");
+        }
+      }
+
+      // Set up typing animation
+      setTypedText("");
+      setIsTyping(true);
+      setMessages((prev) => [...prev, { sender: "ai", text: "" }]);
+
+      let i = 0;
+      const typingInterval = setInterval(() => {
+        setTypedText((prev) => prev + data.reply[i]);
+        i++;
+        if (i >= data.reply.length) {
+          clearInterval(typingInterval);
+          setIsTyping(false);
+          setLoading(false);
+        }
+      }, 20);
+    } catch (error) {
+      console.error("Error sending auto message:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "ai",
+          text: "Maaf, terjadi kesalahan. Silakan coba lagi.",
+        },
+      ]);
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -120,6 +201,10 @@ export default function Chatbox() {
     }
   }, [shouldSend]);
 
+  if (!isClient) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col h-screen w-full bg-[#f0e4d7] text-[#3e3e3e]">
       {/* Chat messages area */}
@@ -136,6 +221,8 @@ export default function Chatbox() {
                 className={`p-3 rounded-xl max-w-[90%] ${
                   msg.sender === "user"
                     ? "bg-blue-600 text-white rounded-tr-none"
+                    : validationError && i === messages.length - 1
+                    ? "bg-red-600 text-white rounded-tl-none"
                     : "bg-gray-800 text-gray-100 rounded-tl-none"
                 }`}
               >

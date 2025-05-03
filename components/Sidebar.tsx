@@ -2,19 +2,12 @@
 
 import { useChatPrompt } from "@/lib/chatPromptStore";
 import { useState, useEffect } from "react";
-
-// Items berdasarkan kategori waktu
-const suggestions = [
-  "Bagaimana cara menulis CV yang baik ?",
-  "Apa yang harus saya lakukan untuk mempersiapkan wawancara kerja ?",
-  "Tips interview kerja untuk fresh graduate",
-  "Bagaimana cara menulis surat lamaran kerja yang menarik ?",
-  "Apa yang harus saya lakukan jika saya tidak mendapatkan pekerjaan setelah lulus ?",
-];
+import { FaRegTrashCan } from "react-icons/fa6";
 
 const Sidebar = () => {
   const { setPrompt } = useChatPrompt();
   const [isOpen, setIsOpen] = useState(true);
+  const [chatHistory, setChatHistory] = useState([]);
 
   // Mendeteksi ukuran layar untuk responsivitas
   const [isMobile, setIsMobile] = useState(false);
@@ -36,10 +29,51 @@ const Sidebar = () => {
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
-  const handleItemClick = (item: string) => {
-    setPrompt(item, true);
+  const handleItemClick = (item) => {
+    setPrompt(item.message || item, true);
     if (isMobile) setIsOpen(false);
   };
+
+  const handleDelete = async (id) => {
+    if (!id) {
+      console.error("ID tidak valid untuk penghapusan");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/history/${id}`, {
+        // Tambahkan / di awal path
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setChatHistory((prev) => prev.filter((item) => item._id !== id));
+      } else {
+        console.error("Gagal menghapus chat:", data.message);
+      }
+    } catch (error) {
+      console.error("Failed to delete chat:", error);
+    }
+  };
+
+  useEffect(() => {
+    const username = localStorage.getItem("username");
+
+    if (username) {
+      fetch(`/api/history?user=${username}`)
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("API History Response:", data); // 🔍 log data
+          // Simpan data lengkap, bukan hanya message
+          setChatHistory(data);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch chat history", err);
+        });
+    }
+  }, []);
 
   return (
     <>
@@ -121,15 +155,32 @@ const Sidebar = () => {
             <h3 className="text-xs text-gray-500 uppercase mb-1 px-3">
               Pertanyaan Populer
             </h3>
-            {suggestions.map((s, i) => (
-              <div
-                key={i}
-                className="flex items-center py-3 px-3 space-y-2 rounded-md hover:bg-gray-800 cursor-pointer bg-gray-800"
-                onClick={() => handleItemClick(s)} // Call function for click
-              >
-                <span>{s}</span>
+            {chatHistory.length > 0 ? (
+              chatHistory.map((chat, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between py-3 px-3 rounded-md hover:bg-gray-800 cursor-pointer bg-gray-800"
+                  onClick={() => handleItemClick(chat)}
+                >
+                  <span className="truncate">
+                    {chat.message || "Tidak ada pesan"}
+                  </span>
+                  <button
+                    title="Delete Chat"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Mencegah event click ke parent
+                      handleDelete(chat._id);
+                    }}
+                  >
+                    <FaRegTrashCan />
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="text-gray-500 text-sm px-3">
+                Belum ada history chat
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

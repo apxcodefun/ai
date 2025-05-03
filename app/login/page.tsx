@@ -6,10 +6,20 @@ const page = () => {
   const [username, setUsername] = useState("");
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim()) return;
-    localStorage.setItem("busername", username);
+    // Save to localStorage
+    localStorage.setItem("username", username);
+    // Save To DB
+    await fetch("/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username }),
+    });
+
     router.push("/careerbuddy");
   };
   return (
