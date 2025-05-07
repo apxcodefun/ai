@@ -14,8 +14,19 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const userExist = await User.findOne({ username });
-    if (!userExist) {
-      await User.create({ username });
+    if (userExist) {
+      return NextResponse.json({
+        success: true,
+        message: "Login Success",
+        user: { username: userExist.username },
+      });
+    } else {
+      const newUser = await User.create({ username });
+      return NextResponse.json({
+        success: true,
+        message: "User Created",
+        user: { username: newUser.username },
+      });
     }
     return NextResponse.json({ success: true });
   } catch (error) {
