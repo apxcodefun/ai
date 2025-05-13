@@ -143,8 +143,8 @@ const Sidebar = () => {
           </div>
 
           {/* Main Chat Items */}
-          <div className="px-2 space-y-1">
-            <h2>Buddy AI Career</h2>
+          <div className="px-2 space-y-2 text-center">
+            <h2 className="uppercase ">Buddy AI Career</h2>
           </div>
 
           {/* Divider */}
@@ -152,35 +152,31 @@ const Sidebar = () => {
 
           {/* Hari Ini */}
           <div className="px-2 space-y-2">
-            <h3 className="text-xs text-gray-500 uppercase mb-1 px-3">
-              Pertanyaan Populer
+            <h3 className="text-xs text-gray-500 uppercase mb-1 px-3 text-center">
+              History Chat
             </h3>
-            {chatHistory.length > 0 ? (
-              chatHistory.map((chat, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between py-3 px-3 rounded-md hover:bg-gray-800 cursor-pointer bg-gray-800"
-                  onClick={() => handleItemClick(chat)}
-                >
-                  <span className="truncate">
-                    {chat.message || "Tidak ada pesan"}
-                  </span>
-                  <button
-                    title="Delete Chat"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Mencegah event click ke parent
-                      handleDelete(chat._id);
-                    }}
+            {chatHistory.length > 0
+              ? chatHistory.map((chat, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between py-3 px-3 rounded-md hover:bg-gray-800 cursor-pointer bg-gray-800"
+                    onClick={() => handleItemClick(chat)}
                   >
-                    <FaRegTrashCan />
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div className="text-gray-500 text-sm px-3">
-                Belum ada history chat
-              </div>
-            )}
+                    <span className="truncate">
+                      {chat.message || "Tidak ada pesan"}
+                    </span>
+                    <button
+                      title="Delete Chat"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Mencegah event click ke parent
+                        handleDelete(chat._id);
+                      }}
+                    >
+                      <FaRegTrashCan />
+                    </button>
+                  </div>
+                ))
+              : null}
           </div>
         </div>
       </div>

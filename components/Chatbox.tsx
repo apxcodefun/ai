@@ -206,9 +206,9 @@ export default function Chatbox() {
   }
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#f0e4d7] text-[#3e3e3e]">
+    <div className="flex flex-col h-screen w-full bg-zinc-800 text-gray-500">
       {/* Chat messages area */}
-      <div className="flex-1 overflow-y-auto py-6 px-4 w-full">
+      <div className="flex-1 overflow-y-auto py-6 px-4 w-full space-y-3">
         <div className="max-w-3xl mx-auto w-full">
           {messages.map((msg, i) => (
             <div
