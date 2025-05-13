@@ -8,7 +8,6 @@ const Sidebar = () => {
   const { setPrompt } = useChatPrompt();
   const [isOpen, setIsOpen] = useState(true);
   const [chatHistory, setChatHistory] = useState([]);
-
   // Mendeteksi ukuran layar untuk responsivitas
   const [isMobile, setIsMobile] = useState(false);
 
@@ -42,7 +41,6 @@ const Sidebar = () => {
 
     try {
       const response = await fetch(`/api/history/${id}`, {
-        // Tambahkan / di awal path
         method: "DELETE",
       });
 
@@ -65,8 +63,7 @@ const Sidebar = () => {
       fetch(`/api/history?user=${username}`)
         .then((res) => res.json())
         .then((data) => {
-          console.log("API History Response:", data); // 🔍 log data
-          // Simpan data lengkap, bukan hanya message
+          console.log("API History Response:", data);
           setChatHistory(data);
         })
         .catch((err) => {
@@ -74,6 +71,13 @@ const Sidebar = () => {
         });
     }
   }, []);
+
+  // Close dropdown when sidebar closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsModelDropdownOpen(false);
+    }
+  }, [isOpen]);
 
   return (
     <>
@@ -120,7 +124,7 @@ const Sidebar = () => {
       >
         <div className={`w-64 h-full flex flex-col overflow-y-auto`}>
           {/* Header sidebar dengan tombol close */}
-          <div className="p-4 flex justify-between items-center">
+          <div className="p-4 flex justify-between items-center border-b border-gray-700">
             <h2 className="text-lg font-semibold text-white">Menu</h2>
             <button
               onClick={toggleSidebar}
@@ -143,40 +147,48 @@ const Sidebar = () => {
           </div>
 
           {/* Main Chat Items */}
-          <div className="px-2 space-y-2 text-center">
-            <h2 className="uppercase ">Buddy AI Career</h2>
+          <div className="px-4 py-3 text-center bg-gray-800 mb-2">
+            <h2 className="font-medium text-white">Buddy AI Career</h2>
           </div>
 
           {/* Divider */}
           <div className="border-t border-gray-700 my-2"></div>
 
-          {/* Hari Ini */}
-          <div className="px-2 space-y-2">
-            <h3 className="text-xs text-gray-500 uppercase mb-1 px-3 text-center">
+          {/* History Chat */}
+          <div className="px-3 py-2 flex-1">
+            <h3 className="text-xs text-gray-400 uppercase font-medium mb-2 px-1">
               History Chat
             </h3>
-            {chatHistory.length > 0
-              ? chatHistory.map((chat, i) => (
+
+            <div className="space-y-1">
+              {chatHistory.length > 0 ? (
+                chatHistory.map((chat, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between py-3 px-3 rounded-md hover:bg-gray-800 cursor-pointer bg-gray-800"
+                    className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-gray-800 cursor-pointer transition-colors bg-gray-800 mb-1"
                     onClick={() => handleItemClick(chat)}
                   >
-                    <span className="truncate">
+                    <span className="truncate text-sm">
                       {chat.message || "Tidak ada pesan"}
                     </span>
                     <button
                       title="Delete Chat"
+                      className="text-gray-400 hover:text-red-400 transition-colors p-1 cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation(); // Mencegah event click ke parent
                         handleDelete(chat._id);
                       }}
                     >
-                      <FaRegTrashCan />
+                      <FaRegTrashCan size={14} />
                     </button>
                   </div>
                 ))
-              : null}
+              ) : (
+                <div className="text-center py-3 text-gray-400 text-sm italic">
+                  Belum ada history
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
